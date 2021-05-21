@@ -1,0 +1,120 @@
+#!/bin/bash -eu
+
+SCRIPT_DIR="$(readlink -m ${BASH_SOURCE%/*})"
+CREDS="$SCRIPT_DIR/creds"
+
+OUT_DIR="$SCRIPT_DIR/data/grace"
+COMBINED_DIR="combined"
+
+BASE_URL=https://podaac-tools.jpl.nasa.gov/drive/files
+GRACE=${BASE_URL}/allData/tellus/L3/grace/land_mass/RL06/v03
+GRACEFO=${BASE_URL}/allData/tellus/L3/gracefo/land_mass/RL06/v03
+COMBINED=${BASE_URL}/allData/tellus/L3/mascon/RL06/JPL/v02/CRI/netcdf
+
+check-creds () {
+    [ -f "$CREDS" ] || {
+        echo >&2 "Need to set credentials. Try running 'set-creds' first."
+        exit 1
+    }
+}
+
+get-dir () {
+    local URL=$1
+    MD5S=$(curl -sK "$CREDS" $URL | grep .nc.md5 | cut -d '>' -f 2 | cut -d '<' -f 1)
+    for MD5 in $MD5S; do
+        FILE=${MD5%%.md5}
+        echo >&2 "Getting $FILE"
+        # we could get the md5 regardless if we wanted to make the
+        # data update automatically if the files were to change
+        # but that seems too "surprising"
+        [ -f $FILE ] && md5sum -c $MD5 || {
+            curl -OK "$CREDS" $URL/$MD5
+            curl -OK "$CREDS" $URL/$FILE
+            md5sum -c $MD5
+        }
+    done
+}
+
+get-data () {
+    local ORG=$1
+    check-creds
+    mkdir -p $OUT_DIR; cd $OUT_DIR
+    mkdir -p $ORG; cd $ORG
+    get-dir $GRACE/$ORG
+    get-dir $GRACEFO/$ORG
+}
+
+get-combined () {
+    check-creds
+    mkdir -p $OUT_DIR; cd $OUT_DIR
+    mkdir -p $COMBINED_DIR; cd $COMBINED_DIR
+
+    # some random files we want without checksums
+    curl -OK "$CREDS" $COMBINED/CLM4.SCALE_FACTOR.JPL.MSCNv02CRI.nc
+    curl -OK "$CREDS" $COMBINED/JPL_MSCNv02_PLACEMENT.nc
+    curl -OK "$CREDS" $COMBINED/LAND_MASK.CRI.nc
+    
+    # main data file has md5
+    FILE=GRCTellus.JPL.200204_202103.GLO.RL06M.MSCNv02CRI.nc
+    [ -f $FILE ] && md5sum -c $FILE.md5 || {
+        curl -OK "$CREDS" $COMBINED/$FILE
+        curl -OK "$CREDS" $COMBINED/$FILE.md5
+        md5sum -c $FILE.md5
+    }
+}
+
+set-creds () {
+    read -p "Username? " USER
+    read -p "Password? " PASS
+    cat >"$CREDS" <<EOF
+-u $USER:$PASS
+EOF
+}
+
+usage () {
+    cat <<EOF
+Script to get GRACE/GRACEFO data from PO.DAAC.
+
+Specify processing organization to collect those files:
+
+    $0 CSR
+
+Organization names supported: CSR, JPL, GFZ.
+
+Get combined JPL dataset and associated files:
+
+    $0 combined
+
+Lastly, set API credentials with the 'set-creds' command:
+
+    $0 set-creds
+
+Follow the prompts to set your PO.DAAC API credentials.
+EOF
+}
+
+main() {
+    local CMD="${1:-help}"; shift ||:
+    case "$CMD" in
+        [Cc][Ss][Rr])
+            get-data CSR
+            ;;
+        [Jj][Pp][Ll])
+            get-data JPL
+            ;;
+        [Gg][Ff][Zz])
+            get-data GFZ
+            ;;
+        combined)
+            get-combined
+            ;;
+        set-creds)
+            set-creds
+            ;;
+        *)
+            usage
+            ;;
+    esac
+}
+
+main "$@"
