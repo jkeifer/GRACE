@@ -3,10 +3,24 @@ BIN="$(readlink -m ${BASH_SOURCE%/*})/bin"
 _GRACE="$BIN/get-grace-data"
 _GLDAS="$BIN/get-gldas-data"
 
+# Get and process GRACE data
+echo >&2 "Getting GRACE data..."
 . "$_GRACE" >/dev/null 2>&1
 [ -f "$GRACE_CREDS" ] || "$_GRACE set-creds"
 "$_GRACE" combined
 
+echo >&2 "Transforming GRACE coordinates to standard latlon..."
+for FILE in "$GRACE_DIR/$COMBINED_DIR/$GRACE_SF" "$GRACE_DIR/$COMBINED_DIR/$GRACE_COMBINED"; do
+    cdo -sellonlatbox,-180,180,-90,90 "$FILE" "$FILE.latlon"
+done
+
+# Get and process GLDAS soil moisture data
+echo >&2 ""
+echo >&2 "Getting GLDAS data..."
 . "$_GLDAS" >/dev/null 2>&1
 [ -f "$GLDAS_CREDS" ] || "$_GLDAS set-creds"
 "$_GLDAS" download 2001
+
+echo >&2 "Merging GLDAS datasets..."
+MERGED="$GLDAS_DIR/GLDAS_NOAH10_M.nc4.merged"
+cdo mergetime "$GLDAS_DIR/*.nc4" "$MERGED"

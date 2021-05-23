@@ -3,13 +3,15 @@
 SCRIPT_DIR="$(readlink -m ${BASH_SOURCE%/*})"
 GRACE_CREDS="$SCRIPT_DIR/../curl_creds.grace"
 
-OUT_DIR="$SCRIPT_DIR/../data/grace"
+GRACE_DIR="$SCRIPT_DIR/../data/grace"
 COMBINED_DIR="combined"
 
 BASE_URL=https://podaac-tools.jpl.nasa.gov/drive/files
 GRACE=${BASE_URL}/allData/tellus/L3/grace/land_mass/RL06/v03
 GRACEFO=${BASE_URL}/allData/tellus/L3/gracefo/land_mass/RL06/v03
 COMBINED=${BASE_URL}/allData/tellus/L3/mascon/RL06/JPL/v02/CRI/netcdf
+GRACE_SF=CLM4.SCALE_FACTOR.JPL.MSCNv02CRI.nc
+GRACE_COMBINED=GRCTellus.JPL.200204_202103.GLO.RL06M.MSCNv02CRI.nc
 
 check-creds () {
     [ -f "$GRACE_CREDS" ] || {
@@ -38,7 +40,7 @@ get-dir () {
 get-data () {
     local ORG=$1
     check-creds
-    mkdir -p $OUT_DIR; cd $OUT_DIR
+    mkdir -p $GRACE_DIR; cd $GRACE_DIR
     mkdir -p $ORG; cd $ORG
     get-dir $GRACE/$ORG
     get-dir $GRACEFO/$ORG
@@ -46,16 +48,16 @@ get-data () {
 
 get-combined () {
     check-creds
-    mkdir -p $OUT_DIR; cd $OUT_DIR
+    mkdir -p $GRACE_DIR; cd $GRACE_DIR
     mkdir -p $COMBINED_DIR; cd $COMBINED_DIR
 
     # some random files we want without checksums
-    for FILE in CLM4.SCALE_FACTOR.JPL.MSCNv02CRI.nc JPL_MSCNv02_PLACEMENT.nc LAND_MASK.CRI.nc; do
+    for FILE in $GRACE_SF; do
         [ -f $FILE ] || curl -OK "$GRACE_CREDS" $COMBINED/$FILE
     done
     
     # main data file has md5
-    FILE=GRCTellus.JPL.200204_202103.GLO.RL06M.MSCNv02CRI.nc
+    FILE=$GRACE_COMBINED
     [ -f $FILE ] && md5sum -c $FILE.md5 || {
         curl -OK "$GRACE_CREDS" $COMBINED/$FILE
         curl -OK "$GRACE_CREDS" $COMBINED/$FILE.md5
