@@ -1,1 +1,6 @@
-Gdal
+numpy
+gdal==3.2.2
+geoplot
+rioxarray
+cftime
+imageio
