@@ -1,6 +1,7 @@
 .python-version
 .ipynb_checkpoints/
 data/
-creds
+curl_creds*
+.urs_cookies
 *.png
 *.gif

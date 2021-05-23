@@ -1,0 +1,73 @@
+#!/bin/bash -eu
+
+SCRIPT_DIR="$(readlink -m ${BASH_SOURCE%/*})"
+OUT_DIR="$SCRIPT_DIR/../data/gldas"
+GLDAS_CREDS="$SCRIPT_DIR/../curl_creds.gldas"
+COOKIES="$SCRIPT_DIR/../.urs_cookies"
+
+BASE_URL=https://hydro1.gesdisc.eosdis.nasa.gov/data/GLDAS/GLDAS_NOAH10_M.2.1
+
+get-year () {
+    [ -f "$GLDAS_CREDS" ] || { echo >&2 "Need to set-creds before you can download" && exit 1; }
+    local YEAR=$1
+    local URL=$BASE_URL/$YEAR
+    FILES=$(curl -s $URL/ | ggrep -o -P '>\K([A-Z_\.0-9]+\.nc4)(?=</a>)')
+    for FILE in $FILES; do
+        echo >&2 "Getting $FILE"
+        [ -f $FILE ] || {
+            curl --netrc-file "$GLDAS_CREDS" -c "$COOKIES" -b "$COOKIES" -LJO $URL/$FILE
+        }
+    done
+}
+
+get-data () {
+    local START_YEAR=${1:?must provide a start year in YYYY, e.g., 2001}; shift ||:
+    local END_YEAR=${1:-$(date +'%Y')}; shift ||:
+    mkdir -p $OUT_DIR; cd $OUT_DIR
+    touch "$COOKIES"
+    for YEAR in $(seq $START_YEAR $END_YEAR); do
+        get-year $YEAR
+    done
+}
+
+set-creds () {
+    echo "Setup your earthdata.nasa.gov login credentials to allow GLDAS downloads."
+    read -p "User? " USER
+    read -p "Pass? " PASS
+    install -m 600 /dev/stdin >"$GLDAS_CREDS" <<EOF
+machine urs.earthdata.nasa.gov
+login $USER
+password $PASS
+EOF
+}
+
+usage () {
+    cat <<EOF
+Script to get GLDAS soil moisture data from the NASA GESDISC DATA ARCHIVE.
+
+This script has two commands:
+
+    $0 download START_YEAR [ END_YEAR ]
+    $0 set-creds
+
+The username and password for setting the API credentials are the same as
+used for your earthdata.nasa.gov account login.
+EOF
+}
+
+main() {
+    local CMD=${1:-}; shift ||:
+    case $CMD in
+        download)
+            get-data "$@"
+            ;;
+        set-creds)
+            set-creds
+            ;;
+        *)
+            usage
+            ;;
+    esac
+}
+
+main "$@"

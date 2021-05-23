@@ -1,0 +1,12 @@
+#!/bin/bash -eu
+BIN="$(readlink -m ${BASH_SOURCE%/*})/bin"
+_GRACE="$BIN/get-grace-data"
+_GLDAS="$BIN/get-gldas-data"
+
+. "$_GRACE" >/dev/null 2>&1
+[ -f "$GRACE_CREDS" ] || "$_GRACE set-creds"
+"$_GRACE" combined
+
+. "$_GLDAS" >/dev/null 2>&1
+[ -f "$GLDAS_CREDS" ] || "$_GLDAS set-creds"
+"$_GLDAS" download 2001

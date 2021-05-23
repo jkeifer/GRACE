@@ -1,9 +1,9 @@
 #!/bin/bash -eu
 
 SCRIPT_DIR="$(readlink -m ${BASH_SOURCE%/*})"
-CREDS="$SCRIPT_DIR/creds"
+GRACE_CREDS="$SCRIPT_DIR/../curl_creds.grace"
 
-OUT_DIR="$SCRIPT_DIR/data/grace"
+OUT_DIR="$SCRIPT_DIR/../data/grace"
 COMBINED_DIR="combined"
 
 BASE_URL=https://podaac-tools.jpl.nasa.gov/drive/files
@@ -12,7 +12,7 @@ GRACEFO=${BASE_URL}/allData/tellus/L3/gracefo/land_mass/RL06/v03
 COMBINED=${BASE_URL}/allData/tellus/L3/mascon/RL06/JPL/v02/CRI/netcdf
 
 check-creds () {
-    [ -f "$CREDS" ] || {
+    [ -f "$GRACE_CREDS" ] || {
         echo >&2 "Need to set credentials. Try running 'set-creds' first."
         exit 1
     }
@@ -20,7 +20,7 @@ check-creds () {
 
 get-dir () {
     local URL=$1
-    MD5S=$(curl -sK "$CREDS" $URL | grep .nc.md5 | cut -d '>' -f 2 | cut -d '<' -f 1)
+    MD5S=$(curl -sK "$GRACE_CREDS" $URL | grep .nc.md5 | cut -d '>' -f 2 | cut -d '<' -f 1)
     for MD5 in $MD5S; do
         FILE=${MD5%%.md5}
         echo >&2 "Getting $FILE"
@@ -28,8 +28,8 @@ get-dir () {
         # data update automatically if the files were to change
         # but that seems too "surprising"
         [ -f $FILE ] && md5sum -c $MD5 || {
-            curl -OK "$CREDS" $URL/$MD5
-            curl -OK "$CREDS" $URL/$FILE
+            curl -OK "$GRACE_CREDS" $URL/$MD5
+            curl -OK "$GRACE_CREDS" $URL/$FILE
             md5sum -c $MD5
         }
     done
@@ -50,23 +50,24 @@ get-combined () {
     mkdir -p $COMBINED_DIR; cd $COMBINED_DIR
 
     # some random files we want without checksums
-    curl -OK "$CREDS" $COMBINED/CLM4.SCALE_FACTOR.JPL.MSCNv02CRI.nc
-    curl -OK "$CREDS" $COMBINED/JPL_MSCNv02_PLACEMENT.nc
-    curl -OK "$CREDS" $COMBINED/LAND_MASK.CRI.nc
+    for FILE in CLM4.SCALE_FACTOR.JPL.MSCNv02CRI.nc JPL_MSCNv02_PLACEMENT.nc LAND_MASK.CRI.nc; do
+        [ -f $FILE ] || curl -OK "$GRACE_CREDS" $COMBINED/$FILE
+    done
     
     # main data file has md5
     FILE=GRCTellus.JPL.200204_202103.GLO.RL06M.MSCNv02CRI.nc
     [ -f $FILE ] && md5sum -c $FILE.md5 || {
-        curl -OK "$CREDS" $COMBINED/$FILE
-        curl -OK "$CREDS" $COMBINED/$FILE.md5
+        curl -OK "$GRACE_CREDS" $COMBINED/$FILE
+        curl -OK "$GRACE_CREDS" $COMBINED/$FILE.md5
         md5sum -c $FILE.md5
     }
 }
 
 set-creds () {
+    echo "Setup your PO.DAAC API credentials to allow GRACE data downloads."
     read -p "Username? " USER
     read -p "Password? " PASS
-    cat >"$CREDS" <<EOF
+    install -m 600 /dev/sdtin >"$GRACE_CREDS" <<EOF
 -u $USER:$PASS
 EOF
 }
