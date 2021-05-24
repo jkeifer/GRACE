@@ -26,7 +26,7 @@ A required dependency for the update-data script is `[cdo](https://code.mpimet.m
 You will need that to be installed before running the script as it is required
 for the initial data transformations.
 
-To install the python tool, run `pip install setup.py`. A virtualenv is recommended.
+To install the python tool, run `pip install .`. A virtualenv is recommended.
 GDAL is a required dependency, so you will need to make sure that is installed to
 the system before attempting to run the pip install.
 
