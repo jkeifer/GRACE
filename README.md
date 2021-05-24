@@ -22,7 +22,7 @@ You will also need a PO.DAAC API token.
 To get the data, run the `update-data` script. You will be prompted for your
 login/API information as required.
 
-A required dependency for the update-data script is `[cdo](https://code.mpimet.mpg.de/projects/cdo/)`.
+A required dependency for the update-data script is [cdo](https://code.mpimet.mpg.de/projects/cdo/).
 You will need that to be installed before running the script as it is required
 for the initial data transformations.
 
