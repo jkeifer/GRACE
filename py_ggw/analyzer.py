@@ -151,15 +151,17 @@ def _compare_dates(check_date, start_date, end_date=None):
 
 
 def grace_filter_by_date(data_array, date, end_date=None):
-    filtered = xarray.DataArray(np.empty_like(data_array), dims=data_array.dims,
-                            coords=data_array.coords)
-    j = 0
-    for i in range(len(data_array)):
-        ds_date = data_array[i].time.to_dict()['data']
+    min_index = None
+    max_index = None
+    for index, time in enumerate(data_array.time):
+        ds_date = time.to_dict()['data']
         if _compare_dates(ds_date, date, end_date=end_date):
-            filtered[j] = data_array[i]
-            j += 1
-    return filtered[:j].copy()
+            min_index = min(min_index, index) if min_index is not None else index
+            max_index = max(max_index, index) if max_index is not None else index
+
+    if min_index and max_index:
+        return data_array[min_index:max_index+1]
+    return []
 
 
 def grace_open_file(path, array_index):
@@ -202,8 +204,22 @@ class Analyzer(object):
             transform=self.grace.rio.transform(),
         )
 
-        self.vmin, self.vmax = grace_vrange(self.grace, mask=(self.sf * self.mask))
-        self.average_grid = (self.grace * self.mask * self.sf).mean(dim='time')
+        self._vrange = None
+
+    @property
+    def vmin(self):
+        if self._vrange is None:
+            self._calc_vrange()
+        return self._vrange[0]
+
+    @property
+    def vmax(self):
+        if self._vrange is None:
+            self._calc_vrange()
+        return self._vrange[1]
+
+    def _calc_vrange(self):
+            self._vrange = grace_vrange(self.grace, mask=(self.sf * self.mask))
 
     @staticmethod
     def grace_data_from_data_dir(data_dir,
@@ -256,8 +272,8 @@ class Analyzer(object):
         print("Animation written to '{}'".format(savefile))
 
     def plot(self, start_date, end_date, savefile):
-        ds = grace_filter_by_date(self.grace, start_date, end_date)
-        if len(ds) == 0:
+        _ds = grace_filter_by_date(self.grace, start_date, end_date)
+        if len(_ds) == 0:
             print("Unable to find any datasets within range '{}-{:02d}' to '{}-{:02d}'".format(
                 start_date.year,
                 start_date.month,
@@ -266,13 +282,15 @@ class Analyzer(object):
             ))
             return
 
+        average_grid = (_ds * self.mask * self.sf).mean(dim='time')
+
         dates = []
         means = []
         corrected = []
-        for ds in self.grace:
+        for ds in _ds:
             dates.append(date.fromisoformat(grace_date_to_str(ds)))
             means.append(float((ds * self.mask * self.sf).mean().values))
-            corrected.append(float(((ds * self.mask * self.sf) - self.average_grid).mean().values))
+            corrected.append(float(((ds * self.mask * self.sf) - average_grid).mean().values))
 
         df = pd.DataFrame(
             zip(dates, means, corrected),
