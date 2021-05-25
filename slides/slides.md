@@ -124,7 +124,7 @@ template: inverse
         - The lowest degree spherical harmonic (60 deg) corresponds to about 330km
           of spatial resolution
 
-.footnote[[0] [GRACE Level 3 Handbook](https://podaac-tools.jpl.nasa.gov/drive/files/allData/gracefo/docs/GRACE-FO_L3_Handbook_JPL.pdf)]
+.footnote[[0] [GRACE-FO Level 3 Handbook](https://podaac-tools.jpl.nasa.gov/drive/files/allData/gracefo/docs/GRACE-FO_L3_Handbook_JPL.pdf)]
 ---
 ## 3. GRACE Datasets
 
@@ -145,14 +145,14 @@ template: inverse
         - Each mascon a "surface mass deviation for that month relative to a
           baseline temporal average" [0]
 
-.footnote[[0] [GRACE Level 3 Handbook](https://podaac-tools.jpl.nasa.gov/drive/files/allData/gracefo/docs/GRACE-FO_L3_Handbook_JPL.pdf)]
+.footnote[[0] [GRACE-FO Level 3 Handbook](https://podaac-tools.jpl.nasa.gov/drive/files/allData/gracefo/docs/GRACE-FO_L3_Handbook_JPL.pdf)]
 ---
 ## 3. GRACE Datasets
 
 - Four levels of data available, 0 to 3, from least to most processed
 
 <center><img class="center" src="images/level3-processing.png" height=450></center>
-.footnote[Image: [GRACE Level 3 Handbook](https://podaac-tools.jpl.nasa.gov/drive/files/allData/gracefo/docs/GRACE-FO_L3_Handbook_JPL.pdf)]
+.footnote[Image: [GRACE-FO Level 3 Handbook](https://podaac-tools.jpl.nasa.gov/drive/files/allData/gracefo/docs/GRACE-FO_L3_Handbook_JPL.pdf)]
 ---
 ## 3. GRACE Datasets
 
@@ -160,7 +160,13 @@ template: inverse
 
     - GRCTellus.JPL.200204_202103.GLO.RL06M.MSCNv02CRI.nc
 
+        - Represents liquid water equivalent (LWE) in centimeters
+
+        - 0.5 degree global grid
+
     - CLM4.SCALE_FACTOR.JPL.MSCNv02CRI.nc
+
+        - Dimensionless
 
 
 
@@ -282,6 +288,10 @@ template: inverse
 
 - We calculate the total trend change to understand
   if we have a net loss or gain over that time frame
+---
+template: inverse
+class: center, middle
+# NOTEBOOK REVIEW
 
 
 
@@ -295,12 +305,16 @@ template: inverse
 
 - Allow trend line to accommodate missing dates
 
-- Factor in LWE uncertainties
-
 - Use other data to further isolate groundwater signal vs other mass transfer
   (snow water equivalent, surface water, soil moisture)
 
+- Factor LWE uncertainties into reported quantities
+
+- Better titles/labels
+
 - Better performance
+
+    - Main slowdown seems to be initialization/loading data not AOI size
 
 - Incorporate user feedback
 ---
@@ -312,11 +326,13 @@ template: inverse
 <br />
 <br />
 .left[
-### Selected References
+### Selected Links
 
 - [NASA JPL GRACE-FO Mission Overview](https://gracefo.jpl.nasa.gov/mission/overview/)
+- [GRACE-FO Mission Documentation](https://podaac.jpl.nasa.gov/gravity/gracefo-documentation)
 - [GRACE Level 1B Handbook](https://podaac-tools.jpl.nasa.gov/drive/files/allData/grace/docs/Handbook_1B_v1.3.pdf)
 - [GRACE Level 2 Handbook](https://podaac-tools.jpl.nasa.gov/drive/files/allData/grace/docs/L2-UserHandbook_v4.0.pdf)
 - [GRACE-FO Level 3 Handbook](https://podaac-tools.jpl.nasa.gov/drive/files/allData/gracefo/docs/GRACE-FO_L3_Handbook_JPL.pdf)
+- [GRACE Tellus FAQs](https://grace.jpl.nasa.gov/about/faq/)
 - [Rodell et al., Satellite-based estimates of groundwater depletion in India](https://escholarship.org/uc/item/22577805)
 ]
