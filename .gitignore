@@ -8,3 +8,8 @@ curl_creds*
 .urs_cookies
 *.png
 *.gif
+slides.html
+AOIS
+.DS_Store
+notes
+references/
