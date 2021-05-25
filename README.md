@@ -8,7 +8,7 @@ The basic workflow is modeled on the Appendix B analysis from the
 [GRACE L-3 Product User Handbook](https://podaac-tools.jpl.nasa.gov/drive/files/allData/gracefo/docs/GRACE-FO_L3_Handbook_JPL.pdf)
 
 An exploration of the analysis performed by the tool is included in the
-analysis.ipynb Jupyter notebook.
+[analysis.ipynb](analysis.ipynb) Jupyter notebook.
 
 
 Setting up the tool
@@ -27,11 +27,36 @@ You will need that to be installed before running the script as it is required
 for the initial data transformations.
 
 To install the python tool, run `pip install .`. A virtualenv is recommended.
-GDAL is a required dependency, so you will need to make sure that is installed to
-the system before attempting to run the pip install.
+GDAL is also a required dependency, so you will need to make sure that is
+installed to the system before attempting to run the pip install.
 
 
 Using the tool
 --------------
 
-More to come on this front.
+Once installed, `py_ggw` provides a tool called `ggw`. Use it to create GRACE
+maps, animations, or plots for an AOI. Here are some examples.
+
+Mapping:
+
+```
+$ ggw map [ -d DATA_DIR ] AOI_FILE YYYY-MM OUTFILE
+```
+
+![GRACE LWE map](slides/images/sac_2009-05.png)
+
+Animating:
+
+```
+$ ggw animate [ -d DATA_DIR ] [ --fps FPS ] AOI_FILE START_YYYY-MM END_YYYY-MM OUTFILE
+```
+
+![GRACE LWE animation](slides/images/sac_2004-01_2020-12.gif)
+
+Plotting:
+
+```
+$ ggw plot [ -d DATA_DIR ] AOI_FILE START_YYYY-MM END_YYYY-MM OUTFILE
+```
+
+![GRACE LWE plotted over time](slides/images/sac_2004-01_2020-12_plot.png)
