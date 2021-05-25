@@ -33,5 +33,4 @@ setup(
         'cftime',
         'imageio',
     ),
-    license='MIT-Zero',
 )
