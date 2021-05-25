@@ -26,9 +26,9 @@ def aoi_file_arg(arg):
     try:
         return gpd.read_file(arg)
     except:
-        raise argparse.ArgumentError(
+        raise argparse.ArgumentTypeError(
             "Could not load AOI data from provided file: '{}'".format(arg),
-        )
+        ) from None
 
 
 def grace_data_arg(arg):
@@ -36,9 +36,9 @@ def grace_data_arg(arg):
     try:
         return Analyzer.grace_data_from_data_dir(arg)
     except:
-        raise argparse.ArgumentError(
-            "Could not load GRACE data from provided data directory: '{}'".format(arg),
-        )
+        raise argparse.ArgumentTypeError(
+            "Could not load GRACE data from directory: '{}'".format(arg),
+        ) from None
 
 
 def grace_date_arg(arg):
@@ -49,10 +49,9 @@ def grace_date_arg(arg):
         except ValueError:
             return date.fromisoformat(arg + '-01')
     except:
-        raise argparse.ArgumentError(
+        raise argparse.ArgumentTypeError(
             "Unable to coerce into valid date: '{}'".format(arg),
-        )
-
+        ) from None
 
 
 def add_grace_data_opt(parser):
@@ -61,7 +60,6 @@ def add_grace_data_opt(parser):
         '--data_dir',
         help='py_ggw data directory (as created by `update-data`)',
         type=grace_data_arg,
-        default=grace_data_arg(Path(os.getcwd()).joinpath('data')),
         dest='grace_data',
     )
 
@@ -92,6 +90,16 @@ def add_outfile_arg(parser):
     )
 
 
+def load_default_grace_data(parser, args):
+    if args.grace_data is None:
+        try:
+            args.grace_data = grace_data_arg(Path(os.getcwd()).joinpath('data'))
+        except argparse.ArgumentTypeError:
+            parser.error("Tried to load data from default './data' but failed. "
+                         "Double-check you are in the right dir or have data, else "
+                         "specify your data dir explicity with '-d/--data-dir'.")
+
+
 def grace_vrange(timeseries, mask=None):
     vmin=None
     vmax=None
@@ -106,9 +114,10 @@ def grace_date_to_str(data_array):
     return data_array.time.to_dict()['data'].strftime('%Y-%m-%d')
 
 
-def grace_plot_ds(data_array, aoi, mask=None, vmin=None, vmax=None):
+def grace_plot_ds(data_array, aoi, mask=None, average=None, vmin=None, vmax=None):
     ax = aoi.geometry.boundary.plot(edgecolor='black')
     data = data_array * mask if mask is not None else data_array
+    data = data - average if average is not None else data
     ax = data.plot(cmap='RdBu', vmin=vmin, vmax=vmax, ax=ax)
     mean_cm = data.mean()
     plt.title('GRACE LWE Thickness {}'.format(grace_date_to_str(data_array)))
@@ -124,12 +133,12 @@ def grace_plot_ds(data_array, aoi, mask=None, vmin=None, vmax=None):
     return ax
 
 
-def grace_animate(timeseries, aoi, filename, fps, mask=None, vmin=None, vmax=None):
+def grace_animate(timeseries, aoi, filename, fps=10, mask=None, average=None, vmin=None, vmax=None):
     with tempfile.TemporaryDirectory() as _dir:
         _dir = Path(_dir)
         imgs = []
         for index, ds in enumerate(timeseries):
-            ax = grace_plot_ds(ds, aoi, mask=mask, vmin=vmin, vmax=vmax)
+            ax = grace_plot_ds(ds, aoi, mask=mask, average=average, vmin=vmin, vmax=vmax)
             f = str(_dir.joinpath(str(index) + '.png'))
             ax.figure.savefig(f, bbox_inches="tight", pad_inches=0.1)
             plt.close(ax.figure)
@@ -137,7 +146,7 @@ def grace_animate(timeseries, aoi, filename, fps, mask=None, vmin=None, vmax=Non
             # the plot and load them into an imageio object without
             # using the temp storage, but we'll do this for now...
             imgs.append(imageio.imread(f))
-        imageio.mimsave(filename, imgs, fps=9)
+        imageio.mimsave(filename, imgs, fps=fps)
 
 
 def _compare_dates(check_date, start_date, end_date=None):
@@ -231,6 +240,9 @@ class Analyzer(object):
             grace_open_file(data_dir.joinpath(sf_file_path), 0),
         )
 
+    def average_grid(self, timeseries):
+        return (timeseries * self.mask * self.sf).mean(dim='time')
+
     def map_date(self, date, savefile):
         try:
             ds = grace_filter_by_date(self.grace, date)[0]
@@ -260,12 +272,15 @@ class Analyzer(object):
             ))
             return
 
+        average_grid = self.average_grid(ds)
+
         grace_animate(
             ds,
             self.aoi,
             savefile,
             fps=fps,
             mask=(self.sf * self.mask),
+            average=average_grid,
             vmin=self.vmin,
             vmax=self.vmax,
         )
@@ -282,7 +297,7 @@ class Analyzer(object):
             ))
             return
 
-        average_grid = (_ds * self.mask * self.sf).mean(dim='time')
+        average_grid = self.average_grid(_ds)
 
         dates = []
         means = []

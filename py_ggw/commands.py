@@ -1,4 +1,5 @@
 from py_ggw.analyzer import (
+    load_default_grace_data,
     add_grace_data_opt,
     add_aoi_file_arg,
     add_grace_date_arg,
@@ -41,6 +42,9 @@ class Map(Command):
         add_grace_date_arg(parser)
         add_outfile_arg(parser)
 
+    def postprocess_args(self, parser, args):
+        load_default_grace_data(parser, args)
+
     def __call__(self, args):
         Analyzer(args.grace_data[0], args.grace_data[1], args.aoi).map_date(
             args.date,
@@ -64,6 +68,9 @@ class Animate(Command):
             default=10,
         )
 
+    def postprocess_args(self, parser, args):
+        load_default_grace_data(parser, args)
+
     def __call__(self, args):
         Analyzer(args.grace_data[0], args.grace_data[1], args.aoi).animate(
             args.start_date,
@@ -82,6 +89,9 @@ class Plot(Command):
         add_grace_date_arg(parser, name='start_date')
         add_grace_date_arg(parser, name='end_date')
         add_outfile_arg(parser)
+
+    def postprocess_args(self, parser, args):
+        load_default_grace_data(parser, args)
 
     def __call__(self, args):
         Analyzer(args.grace_data[0], args.grace_data[1], args.aoi).plot(
