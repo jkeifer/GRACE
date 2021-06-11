@@ -1,0 +1,125 @@
+---
+
+TITLE
+
+---
+
+Hello everyone, I wanted to present to you today about the project I worked on exploring
+gravity anomaly data from the GRACE satellites to investigate groundwater.
+
+
+---
+
+Project Objectives
+
+---
+
+I had three main objectives as part of this project:
+
+1) understand the different GRACE data available, which is best for this analysis, and how to use them
+
+2) Use those GRACE data to visualize groundwater
+
+3) Take the processing workflow I identified from my analysis in number 2 and build a general tool to produce such visualizations based on arbitrary AOIs provided by the user
+
+I have to be honest, before this project all I knew about GRACE was satellites and gravity. I was not familiar with any of the data products, let alone having used them for an analysis before. Therefore, when getting this project I was simultaneously excited about learning something new and a bit uncertain where this was going to lead.
+
+
+So, let me talk you through my process for this project, if I may. I'll start by breaking down a bit of what I learned about the data available, which data I selected for this project, and how I approached the process of data access and management.
+
+Next, I'll talk over the initial exploratory analysis I performed with these data and show the process I worked through to develop visualizations of these data. I actually followed the template of the Appendix B example in the GRACE-FO level 3 data handbook, because that seemed like a reasonable way to get started with these unfamiliar data.
+
+Lastly, I'll show off the tool I produced, give a quick demo of its functionality, and review several next steps for the tool if I were to continue working to refine it.
+
+
+---
+
+GRACE Data
+
+---
+
+Before we talk about the data, let's quickly understand what GRACE actually is.
+
+GRACE is the Gravity Recovery and Climate experiment, a program run jointly by NASA and the German Aerospace Center, to measure the Earth's gravity field.
+
+GRACE uses two satellites, which by closely tracking the distance between themselves as they follow the orbit can measure small changes in the gravity field. For example, when passing over an area of increased gravity, the lead satellite will be pulled away from the following satellite. In areas of decreased gravity the lead satellite will slow down, and the distance will decrease.
+
+GRACE for our purposes is actually two separate experiments, each with a different pair of satellites. The original GRACE experiment ran from 2002 to 2017. A "follow-on" experiment, or GRACE-FO, succeed the original satellites and began operation in 2018.
+
+---
+
+The data produced from these experiments are available in four levels, ranked by the level of processing.
+
+The lowest level, level 0, are the raw data streams recorded from the orbiters. These data are not really for public consumption and are pretty much unusable for any real purpose without the next level of processing.
+
+Level 1 processing is actually broken down into two phases, 1A and 1B, the first being non-destructive transformation of level 0, and the second resampling the data in an irreversable way. The overall output from level 1 processing is still fairly raw, but has data in a usable format with engineering units fit for further use.
+
+Level 2 data are level 1 data further processed into a usable estimate of the Earth's gravity field.  Multiple agencies actually produce level 2 datasets, each with their own independent models. The level 2 data, according to the level 3 handbook, are "spherical harmonic coefficients of the 'geopotential'", which I don't fully understand if I am honest, but I believe is simply a fancy way to say these data can be used as inputs into equations that model the gravity force field.
+
+A key note from this, however, is the fact that the lowest degree spherical harmonic measurable from the perspective of the GRACE satellites is a 60 degree harmonic, which on the ground corresponds to about 330km, given the maximum spatial resolution of these data.
+
+Level 2 data can be used directly for analysis, but do not appear to be particularly user friendly.
+
+---
+
+Level 3 
+
+Further processing on top of the level 2 data provides level 3 data, which is designed to be more accessible dataset tuned for specific domains of analysis. These data represent mass transfer throughout the Earth's gravity field, or, put another way, changes in mass relative to the average. So we can use these data directly to understand how mass in a location has changed over time.
+
+The processing from level 2 to level three includes numerous filters and smoothing that, while producing a more usable dataset, can actually remove some anomaly signal. To correct for this, a scaling factor dataset is available to correct for some of those lost anomalies and provide a bit better resolution.
+
+---
+
+Here is an example of the level two to three processing pipeline. Notice that the pipeline splits into products tuned for land analysis, which we'll use for groundwater, and those for ocean analysis.
+
+---
+
+The data I selected for this project are actually referenced in the GRACE-FO handbook examples, which is one reason why I chose to use them. The other reason was that I found the scale factor dataset along side them, so I knew they went together.
+
+The actual anomaly data come as a single netCDF file with all monthly observations from 2002 to earlier this year. The data represent the liquid water equivalent of mass change, as measured in centimeters of water.
+
+---
+
+Data demo
+
+---
+
+Let me give a quick run-through of the scripting I set up to automate gathering these data.
+
+
+- talk about update-data
+  - mention cdo used to get data analysis ready (degrees E 0 to 360 vs -180 to 180)
+- talk about get-grace-data
+- talk about the different datasets almost used
+- talk about storing credentials to make it easy to run repeatedly
+
+---
+
+Analysis Walkthrough
+
+- Open AOI and GRACE datasets
+
+- Clip GRACE data/scale factor to AOI extent
+
+- Mask GRACE data/scale factor to AOI boundary
+
+- Multiply each GRACE observation by the scale factor
+
+- For map/animate operations:
+
+    - Scale range is determined across all observations,
+      regardless of date range
+
+- For operations over a date range:
+
+    - Find mean of each cell over date range and subtract the result
+      from each observation to ensure anomolies are relative to the
+      time-mean gravity field over the date range
+
+- When plotting a simple linear regression is added
+
+- We calculate the total trend change to understand
+  if we have a net loss or gain over that time frame
+
+
+
